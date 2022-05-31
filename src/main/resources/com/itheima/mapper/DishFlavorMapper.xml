@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.DishFlavorMapper">
+
+    <insert id="addAll">
+       insert into dish_flavor values
+       <foreach collection="flavors" separator="," item="flavor">
+           (#{flavor.id},#{flavor.dishId},#{flavor.name},#{flavor.value},#{flavor.createTime},#{flavor.updateTime},#{flavor.createUser},#{flavor.updateUser},#{flavor.isDeleted})
+       </foreach>
+    </insert>
+</mapper>
