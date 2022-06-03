@@ -3,11 +3,14 @@ package com.itheima.service.impl;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 ;
 import com.itheima.config.BaseContest;
 import com.itheima.entity.*;
+import com.itheima.entity.dto.PageDto;
 import com.itheima.mapper.AddressBookMapper;
 import com.itheima.mapper.OrderMapper;
 import com.itheima.mapper.ShoppingCartMapper;
@@ -88,11 +91,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         orders.setId(id1);
         orders.setNumber(UUID.randomUUID().toString());
         orders.setOrderTime(LocalDateTime.now());
-        orders.setAmount(new BigDecimal(amont.get()+""));
+        orders.setAmount(new BigDecimal(amont.get() + ""));
         orders.setPhone(addressBook.getPhone());
         orders.setUserName(user.getPhone());
         orders.setConsignee(addressBook.getConsignee());
-        String addressINfo=addressBook.getProvinceName()+addressBook.getCityName()+addressBook.getDistrictName()+addressBook.getDetail();
+        String addressINfo = addressBook.getProvinceName() + addressBook.getCityName() + addressBook.getDistrictName() + addressBook.getDetail();
         orders.setAddress(addressINfo);
         orders.setUserId(id);
         //
@@ -101,5 +104,25 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         //下单结束清空购物车
         shoppingCartService.cleanById(user.getId());
         return R.success(orders);
+    }
+
+    /**
+     * 分页查找订单
+     *
+     * @param pageDto
+     * @return
+     */
+    @Override
+    public R findPage(PageDto pageDto) {
+        IPage<Orders> page = new Page<>(pageDto.getPage(), pageDto.getPageSize());
+        LambdaQueryWrapper<Orders> wrapper = new LambdaQueryWrapper<>();
+        if (pageDto.getNumber() != null) {
+            wrapper.like(Orders::getNumber, pageDto.getNumber());
+        }
+        if (pageDto.getBeginTime()!=null&&pageDto.getEndTime()!=null) {
+            wrapper.between(Orders::getOrderTime,pageDto.getBeginTime(),pageDto.getEndTime());
+        }
+        IPage<Orders> ordersIPage = orderMapper.selectPage(page, wrapper);
+        return R.success(ordersIPage);
     }
 }

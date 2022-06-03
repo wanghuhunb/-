@@ -4,13 +4,14 @@ import com.itheima.entity.Setmeal;
 import com.itheima.entity.SetmealDish;
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * 添加套餐
  */
 @Data
-public class SetmealDto extends Setmeal {
+public class SetmealDto extends Setmeal implements Serializable {
 
     private List<SetmealDish> setmealDishes;
 

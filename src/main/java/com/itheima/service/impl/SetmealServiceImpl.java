@@ -19,6 +19,8 @@ import com.itheima.service.SetmealService;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 
@@ -44,6 +46,8 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
      * @param
      * @return
      */
+    //添加套餐的时候要删除掉当前所有的此套餐分类的缓存
+    @CacheEvict(value = "setmeal",key = "#setmealDto.categoryId+'_'+setmealDto.status")
     @Override
     public R addSetmeal(SetmealDto setmealDto) {
         //校验参数
@@ -62,7 +66,8 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
         setmealDishService.saveBatch(setmealDishes);
         return R.success("添加成功");
     }
-
+    //查找所有要把把所有的套餐存入缓存
+    @Cacheable(value = "setmeal",key = "'_all_'")
     @Override
     public R fandPage(PageDto pageDto) {
         //校验参数

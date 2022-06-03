@@ -7,10 +7,13 @@ import com.github.wxpay.sdk.WXPay;
 import com.github.wxpay.sdk.WXPayUtil;
 import com.itheima.entity.Orders;
 import com.itheima.entity.R;
+import com.itheima.entity.dto.PageDto;
 import com.itheima.service.OrderService;
 import com.itheima.service.ShoppingCartService;
+import com.sun.org.apache.xpath.internal.operations.Or;
 import org.omg.CORBA.PUBLIC_MEMBER;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.jaxb.SpringDataJaxb;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.ServletInputStream;
@@ -33,7 +36,7 @@ public class OrderController {
     private ShoppingCartService shoppingCartService;
 
     /**
-     * 发送订单请求
+     * 发送订单请求给微信
      *
      * @param order
      * @return
@@ -144,6 +147,11 @@ public class OrderController {
             return R.success("订单已支付");
         }
 
+    }
+    //分页查找订单
+    @GetMapping("/page")
+    public R findPage(PageDto pageDtoe){
+       return orderService.findPage(pageDtoe);
     }
 
 
