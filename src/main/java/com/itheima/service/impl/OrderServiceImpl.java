@@ -125,4 +125,21 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         IPage<Orders> ordersIPage = orderMapper.selectPage(page, wrapper);
         return R.success(ordersIPage);
     }
+
+    /**
+     * 查找最新的订单
+     * @param pageDto
+     * @return
+     */
+    @Override
+    public R pageNew(PageDto pageDto) {
+        //获取用户id
+        long id = BaseContest.getId();
+        IPage<Orders> page=new Page<>(pageDto.getPage(),pageDto.getPageSize());
+        LambdaQueryWrapper<Orders> wrapper=new LambdaQueryWrapper<>();
+        wrapper.eq(Orders::getUserId,id);
+        wrapper.orderByDesc(Orders::getOrderTime);
+        IPage<Orders> ordersIPage = orderMapper.selectPage(page, wrapper);
+        return R.success(ordersIPage);
+    }
 }

@@ -10,4 +10,6 @@ public interface OrderService extends IService<Orders> {
     R submit(Orders order);
 
     R findPage(PageDto pageDtoe);
+
+    R pageNew(PageDto pageDto);
 }

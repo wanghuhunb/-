@@ -40,16 +40,19 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
     private CategoryMapper categoryMapper;
     @Autowired
     private RedisTemplate redisTemplate;
+
     /**
      * 添加菜品
+     *
      * @param dishDto
      * @return
      */
-    @CachePut(value = "dishID",key="#dishDto.id")  //添加的时候将这个菜品根据id放入缓存中
+    // @CachePut(value = "dish",key="#dishDto.id")  //添加的时候将这个菜品根据id放入缓存中
+    @CacheEvict(value = "dish",allEntries =true)
     @Override
     public R addAll(DishDto dishDto) {
         //参数校验
-        if(dishDto==null){
+        if (dishDto == null) {
             return R.error("参数异常");
         }
         //雪花算法
@@ -71,17 +74,18 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
 
     /**
      * 分页查找
+     *
      * @param page
      * @param pageSize
      * @return
      */
-    @Cacheable(value = "dishAll",key = "")
+    @Cacheable(value = "dish", key = "'_All_'") //分页查找将所有的
     @Override
-    public R pageInfo(Integer page, Integer pageSize,String name) {
-        Page<Dish> dishPage = new Page<>(page,pageSize);
+    public R pageInfo(Integer page, Integer pageSize, String name) {
+        Page<Dish> dishPage = new Page<>(page, pageSize);
         LambdaQueryWrapper<Dish> wrapper = new LambdaQueryWrapper<>();
-        if(name!=null){
-            wrapper.like(Dish::getName,name);
+        if (name != null) {
+            wrapper.like(Dish::getName, name);
         }
         wrapper.orderByDesc(Dish::getUpdateTime);
         Page<Dish> dishPage1 = dishMapper.selectPage(dishPage, wrapper);
@@ -93,51 +97,53 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
             Category category = categoryMapper.selectById(categoryId);
             DishDto dishDto = new DishDto();
             dishDto.setCategoryName(category.getName());
-            BeanUtils.copyProperties(dish,dishDto);
+            BeanUtils.copyProperties(dish, dishDto);
             dishDtos.add(dishDto);
         }
         Page<DishDto> dishDtoPage = new Page<>();
-        BeanUtils.copyProperties(dishPage1,dishDtoPage);
+        BeanUtils.copyProperties(dishPage1, dishDtoPage);
         dishDtoPage.setRecords(dishDtos);
         return R.success(dishDtoPage);
     }
 
     /**
      * 查询回显
+     *
      * @param id
      * @return
      */
-    @Cacheable(value = "dishID",key = "#id") //查询
+    @Cacheable(value = "dish", key = "#id") //查询
     @Override
     public R findById(Long id) {
         Dish dish = dishMapper.selectById(id);
         Long id1 = dish.getId();
-        LambdaQueryWrapper<DishFlavor> wirpper =new LambdaQueryWrapper<>();
-        wirpper.eq(DishFlavor::getDishId,id1);
+        LambdaQueryWrapper<DishFlavor> wirpper = new LambdaQueryWrapper<>();
+        wirpper.eq(DishFlavor::getDishId, id1);
         List<DishFlavor> dishFlavors = dishFlavorMapper.selectList(wirpper);
         DishDto dishDto = new DishDto();
-        BeanUtils.copyProperties(dish,dishDto);
+        BeanUtils.copyProperties(dish, dishDto);
         dishDto.setFlavors(dishFlavors);
         return R.success(dishDto);
     }
 
     /**
      * 修改菜品
+     *
      * @param dishDto
      * @return
      */
-    @CacheEvict(value = "dishID",key = "#dishDto.id")  //删除
+    @CacheEvict(value = "dish", key = "#dishDto.id")  //删除
     @Override
     public R modify(DishDto dishDto) {
         //判断参数
-        if(dishDto==null){
+        if (dishDto == null) {
             return R.error("参数异常");
         }
         //修改菜品
         int i = dishMapper.updateById(dishDto);
         //先删除所有的口味
         LambdaUpdateWrapper<DishFlavor> wrapper = new LambdaUpdateWrapper<>();
-        wrapper.eq(DishFlavor::getDishId,dishDto.getId());
+        wrapper.eq(DishFlavor::getDishId, dishDto.getId());
         dishFlavorMapper.delete(wrapper);
         //然后添加口味
         List<DishFlavor> flavors = dishDto.getFlavors();
@@ -145,25 +151,26 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
             flavor.setDishId(dishDto.getId());
         }
         dishFlavorMapper.addAll(flavors);
-        //修改完成后删除所有关于菜品的缓存
-        Set keys = redisTemplate.keys("dish_*");
-        redisTemplate.delete(keys);
+
+
         return R.success("修改成功");
     }
 
+    //批量删除,直接删除掉所有的dish缓存,保持数据的一致性
+    @CacheEvict(value = "dish",allEntries =true)
     @Override
     public R deleteByIds(Long[] ids) {
         //验证参数
-        if(ids==null){
+        if (ids == null) {
             R.error("参数异常");
         }
         //根据id删除掉所有的口味;
-        LambdaUpdateWrapper<DishFlavor> wrapper=new LambdaUpdateWrapper<>();
-        wrapper.in(DishFlavor::getDishId,ids);
+        LambdaUpdateWrapper<DishFlavor> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.in(DishFlavor::getDishId, ids);
         dishFlavorMapper.delete(wrapper);
         //删掉所有的菜品
-        LambdaUpdateWrapper<Dish> wrapper2=new LambdaUpdateWrapper<>();
-        wrapper2.in(Dish::getId,ids);
+        LambdaUpdateWrapper<Dish> wrapper2 = new LambdaUpdateWrapper<>();
+        wrapper2.in(Dish::getId, ids);
         dishMapper.delete(wrapper2);
         //删除这个菜品对应的分类的缓存 先查出来菜品对应的分类 id都
         //todo
@@ -172,66 +179,62 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
         return R.success("删除成功");
     }
 
+    @CacheEvict(value = "dish",allEntries =true) //全部删除
     @Override
     public R start(Long[] ids) {
         //验证参数
-        if(ids==null){
+        if (ids == null) {
             R.error("参数异常");
         }
         //更具菜品id修改状态
-        LambdaUpdateWrapper<Dish> wrapper=new LambdaUpdateWrapper<>();
-        wrapper.in(Dish::getId,ids);
+        LambdaUpdateWrapper<Dish> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.in(Dish::getId, ids);
         Dish dish = new Dish();
         dish.setStatus(1);
-        dishMapper.update(dish,wrapper);
+        dishMapper.update(dish, wrapper);
         return R.success("起售成功");
     }
 
+    @CacheEvict(value = "dish")
     @Override
     public R updown(Long[] ids) {
         //验证参数
-        if(ids==null){
+        if (ids == null) {
             R.error("参数异常");
         }
         //更具菜品id修改状态
-        LambdaUpdateWrapper<Dish> wrapper=new LambdaUpdateWrapper<>();
-        wrapper.in(Dish::getId,ids);
+        LambdaUpdateWrapper<Dish> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.in(Dish::getId, ids);
         Dish dish = new Dish();
         dish.setStatus(0);
-        dishMapper.update(dish,wrapper);
+        dishMapper.update(dish, wrapper);
         return R.success("停售成功");
     }
+
     /**
      * 更具分类id查询菜品信息
      */
+    @Cacheable(value = "dish", key = "#categoryId")
     @Override
     public R findListBycategoryId(String categoryId) {
-        if(categoryId==null){
+        if (categoryId == null) {
             return R.error("参数异常");
         }
-        //判断缓存中是否有数据
-        String key = "dish_"+categoryId+"_1";
-        List dishDtos = (List) redisTemplate.opsForValue().get(key);
-        //如果没有走数据库 并保存到缓存
-        if(dishDtos==null){
-            LambdaQueryWrapper<Dish> wrapper=new LambdaQueryWrapper<>();
-            wrapper.eq(Dish::getCategoryId, categoryId);
-            List<Dish> dishes = dishMapper.selectList(wrapper);
-            dishDtos = new ArrayList<>();
-            //把口味也加上
-            for (Dish dish : dishes) {
-                //Long id = dish.getId();
-                LambdaQueryWrapper<DishFlavor> wrapper2 = new LambdaQueryWrapper<>();
-                wrapper2.eq(DishFlavor::getDishId,dish.getId());
-                List<DishFlavor> dishFlavors = dishFlavorMapper.selectList(wrapper2);
-                DishDto dishDto = new DishDto();
-                BeanUtils.copyProperties(dish,dishDto);
-                dishDto.setFlavors(dishFlavors);
-                dishDtos.add(dishDto);
-            }
-            redisTemplate.opsForValue().set(key,dishDtos);
+        LambdaQueryWrapper<Dish> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Dish::getCategoryId, categoryId);
+        List<Dish> dishes = dishMapper.selectList(wrapper);
+        List dishDtos = new ArrayList<>();
+        //把口味也加上
+        for (Dish dish : dishes) {
+            //Long id = dish.getId();
+            LambdaQueryWrapper<DishFlavor> wrapper2 = new LambdaQueryWrapper<>();
+            wrapper2.eq(DishFlavor::getDishId, dish.getId());
+            List<DishFlavor> dishFlavors = dishFlavorMapper.selectList(wrapper2);
+            DishDto dishDto = new DishDto();
+            BeanUtils.copyProperties(dish, dishDto);
+            dishDto.setFlavors(dishFlavors);
+            dishDtos.add(dishDto);
         }
-        //直接走缓存
         return R.success(dishDtos);
     }
 }

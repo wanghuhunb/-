@@ -153,6 +153,12 @@ public class OrderController {
     public R findPage(PageDto pageDtoe){
        return orderService.findPage(pageDtoe);
     }
-
+    /**
+     * 查找最新订单
+     */
+    @GetMapping("/userPage")
+    public R pageNew(PageDto pageDto){
+        return orderService.pageNew(pageDto);
+    }
 
 }

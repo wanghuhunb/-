@@ -47,7 +47,7 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
      * @return
      */
     //添加套餐的时候要删除掉当前所有的此套餐分类的缓存
-    @CacheEvict(value = "setmeal",key = "#setmealDto.categoryId+'_'+setmealDto.status")
+    @CacheEvict(value = "setmeal",allEntries =true)
     @Override
     public R addSetmeal(SetmealDto setmealDto) {
         //校验参数
@@ -98,7 +98,7 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
         page2.setRecords(records);
         return R.success(page2);
     }
-
+    @CacheEvict(value = "setmeal",allEntries =true)
     @Override
     public R deleteByids(List<Long> ids) {
         if(ids.size()==0){
@@ -147,6 +147,7 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
      * @param setmealDto
      * @return
      */
+    @CacheEvict(value = "setmeal",allEntries =true)
     @Override
     public R modify(SetmealDto setmealDto) {
         if(setmealDto==null){
@@ -174,6 +175,7 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
      * @param ids
      * @return
      */
+    @CacheEvict(value = "setmeal",allEntries =true)
     @Override
     public R startAndEnd(Integer id, Long[] ids) {
         if(id==null&&ids.length==0){
@@ -192,6 +194,8 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
      * @param setmeal
      * @return
      */
+
+    @Cacheable(value = "setmeal",key = "#setmeal.getCategoryId")
     @Override
     public R fandList(Setmeal setmeal) {
         LambdaQueryWrapper<Setmeal> wrapper = new LambdaQueryWrapper<>();
